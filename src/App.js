@@ -37,23 +37,15 @@ const styles = {
     margin: '0',
     lineHeight: '1.5',
   },
-  controlsContainer: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1.5rem',
-      alignItems: 'center',
-  },
   inputsContainer: {
     display: 'flex',
-    flexWrap: 'wrap',
-    gap: '2rem',
-    justifyContent: 'center',
-    width: '100%',
-    marginTop: '1.5rem',
+    flexDirection: 'column',
+    gap: '1.5rem',
+    alignItems: 'center',
   },
   inputGroup: {
-    flex: '1 1 200px',
-    minWidth: '200px',
+    width: '100%',
+    maxWidth: '350px',
     display: 'flex',
     flexDirection: 'column',
     transition: 'all 0.3s ease',
@@ -86,12 +78,8 @@ const styles = {
     boxSizing: 'border-box',
     transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
   },
-  textInputSymbolLeft: {
-    paddingLeft: '2.5rem',
-  },
-  textInputSymbolRight: {
-    paddingRight: '2.5rem',
-  },
+  textInputSymbolLeft: { paddingLeft: '2.5rem' },
+  textInputSymbolRight: { paddingRight: '2.5rem' },
   textInputFocus: {
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.3)',
@@ -105,12 +93,8 @@ const styles = {
     fontWeight: '700',
     color: '#a0aec0',
   },
-  inputSymbolLeft: {
-    left: '1rem',
-  },
-  inputSymbolRight: {
-    right: '1rem',
-  },
+  inputSymbolLeft: { left: '1rem' },
+  inputSymbolRight: { right: '1rem' },
   slider: {
     width: '100%',
     cursor: 'pointer',
@@ -120,14 +104,7 @@ const styles = {
       textAlign: 'center',
       marginTop: '2rem',
       display: 'flex',
-      flexDirection: 'column',
       gap: '1rem',
-      alignItems: 'center',
-  },
-  manualButtonsGroup: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '0.5rem',
       justifyContent: 'center',
   },
   button: {
@@ -141,16 +118,24 @@ const styles = {
       cursor: 'pointer',
       transition: 'background-color 0.2s ease',
   },
-  secondaryButton: {
+  selectionContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1rem',
+      alignItems: 'center',
+  },
+  selectionButton: {
       backgroundColor: '#3b82f6',
       color: 'white',
       border: 'none',
       borderRadius: '8px',
-      padding: '0.5rem 1rem',
-      fontSize: '0.875rem',
+      padding: '1rem 2rem',
+      fontSize: '1.125rem',
       fontWeight: '600',
       cursor: 'pointer',
       transition: 'background-color 0.2s ease',
+      width: '100%',
+      maxWidth: '400px',
   }
 };
 
@@ -162,20 +147,20 @@ const InputControl = ({
   min,
   max,
   step,
-  isCalculated,
+  isResult = false,
   unitPosition = 'before',
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
   const groupStyles = {
     ...styles.inputGroup,
-    ...(isCalculated ? styles.calculatedInputGroup : {}),
+    ...(isResult ? styles.calculatedInputGroup : {}),
   };
 
   const inputStyles = {
     ...styles.textInput,
     ...(unitPosition === 'before' ? styles.textInputSymbolLeft : styles.textInputSymbolRight),
-    ...(isFocused ? styles.textInputFocus : {}),
+    ...(isFocused && !isResult ? styles.textInputFocus : {}),
   };
 
   const symbolStyles = {
@@ -197,17 +182,20 @@ const InputControl = ({
           onBlur={() => setIsFocused(false)}
           min={min}
           max={max}
+          readOnly={isResult}
         />
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={onChange}
-        style={styles.slider}
-      />
+      {!isResult && (
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={onChange}
+          style={styles.slider}
+        />
+      )}
     </div>
   );
 };
@@ -220,129 +208,105 @@ export default function App() {
   const [goal, setGoal] = useState(INITIAL_GOAL);
   const [contribution, setContribution] = useState(INITIAL_CONTRIBUTION);
   const [duration, setDuration] = useState(INITIAL_DURATION);
-  const [calculatedField, setCalculatedField] = useState('goal');
-  const [autoCalculate, setAutoCalculate] = useState(true);
-
-  const calculateSwitch = () => {
-    setAutoCalculate(!autoCalculate);
-  }
-
-  const handleGoalChange = useCallback((e) => {
-    const newGoal = Number(e.target.value);
-    setGoal(newGoal);
-    if (autoCalculate) {
-      const newContribution = newGoal / duration;
-      setContribution(isFinite(newContribution) ? newContribution : 0);
-      setCalculatedField('contribution');
-    }
-  }, [duration, autoCalculate]);
-
-  const handleContributionChange = useCallback((e) => {
-    const newContribution = Number(e.target.value);
-    setContribution(newContribution);
-    if (autoCalculate) {
-      const newDuration = goal / newContribution;
-      setDuration(isFinite(newDuration) ? newDuration : 0);
-      setCalculatedField('duration');
-    }
-  }, [goal, autoCalculate]);
-
-  const handleDurationChange = useCallback((e) => {
-    const newDuration = Number(e.target.value);
-    setDuration(newDuration);
-    if (autoCalculate) {
-      const newGoal = contribution * newDuration;
-      setGoal(isFinite(newGoal) ? newGoal : 0);
-      setCalculatedField('goal');
-    }
-  }, [contribution, autoCalculate]);
-
-  const handleCalculateGoal = () => {
-    const newGoal = contribution * duration;
-    setGoal(isFinite(newGoal) ? newGoal : 0);
-    setCalculatedField('goal');
-  };
-
-  const handleCalculateContribution = () => {
-    const newContribution = goal / duration;
-    setContribution(isFinite(newContribution) ? newContribution : 0);
-    setCalculatedField('contribution');
-  };
-
-  const handleCalculateDuration = () => {
-    const newDuration = goal / contribution;
-    setDuration(isFinite(newDuration) ? newDuration : 0);
-    setCalculatedField('duration');
-  };
-
+  const [view, setView] = useState('selection');
   const handleReset = useCallback(() => {
     setGoal(INITIAL_GOAL);
     setContribution(INITIAL_CONTRIBUTION);
     setDuration(INITIAL_DURATION);
-    setCalculatedField('goal');
   }, []);
+
+  const renderCalculator = () => {
+    const commonButtons = (
+        <div style={styles.buttonsContainer}>
+            <button onClick={() => setView('selection')} style={styles.button}>Back</button>
+            <button onClick={handleReset} style={styles.button}>Reset</button>
+        </div>
+    );
+
+    switch (view) {
+        case 'goal':
+            return (
+                <div>
+                    <div style={styles.inputsContainer}>
+                        <InputControl label="Monthly Contribution" unit="£" value={contribution} onChange={(e) => {
+                            const newContribution = Number(e.target.value);
+                            setContribution(newContribution);
+                            setGoal(newContribution * duration);
+                        }} min={10} max={2000} step={10} />
+                        <InputControl label="Duration" unit="m" unitPosition="after" value={duration} onChange={(e) => {
+                            const newDuration = Number(e.target.value);
+                            setDuration(newDuration);
+                            setGoal(contribution * newDuration);
+                        }} min={1} max={240} step={1} />
+                        <InputControl label="Savings Goal (Result)" unit="£" value={goal} isResult={true} />
+                    </div>
+                    {commonButtons}
+                </div>
+            );
+        case 'contribution':
+            return (
+                <div>
+                    <div style={styles.inputsContainer}>
+                        <InputControl label="Savings Goal" unit="£" value={goal} onChange={(e) => {
+                            const newGoal = Number(e.target.value);
+                            setGoal(newGoal);
+                            setContribution(isFinite(newGoal / duration) ? newGoal / duration : 0);
+                        }} min={100} max={75000} step={100} />
+                        <InputControl label="Duration" unit="m" unitPosition="after" value={duration} onChange={(e) => {
+                            const newDuration = Number(e.target.value);
+                            setDuration(newDuration);
+                            setContribution(isFinite(goal / newDuration) ? goal / newDuration : 0);
+                        }} min={1} max={240} step={1} />
+                        <InputControl label="Monthly Contribution (Result)" unit="£" value={contribution} isResult={true} />
+                    </div>
+                    {commonButtons}
+                </div>
+            );
+        case 'duration':
+            return (
+                <div>
+                    <div style={styles.inputsContainer}>
+                        <InputControl label="Savings Goal" unit="£" value={goal} onChange={(e) => {
+                            const newGoal = Number(e.target.value);
+                            setGoal(newGoal);
+                            setDuration(isFinite(newGoal / contribution) ? newGoal / contribution : 0);
+                        }} min={100} max={75000} step={100} />
+                        <InputControl label="Monthly Contribution" unit="£" value={contribution} onChange={(e) => {
+                            const newContribution = Number(e.target.value);
+                            setContribution(newContribution);
+                            setDuration(isFinite(goal / newContribution) ? goal / newContribution : 0);
+                        }} min={10} max={2000} step={10} />
+                        <InputControl label="Saving Duration (Result)" unit="m" unitPosition="after" value={duration} isResult={true} />
+                    </div>
+                    {commonButtons}
+                </div>
+            );
+        default:
+            return null;
+    }
+  };
 
   return (
     <div style={styles.appContainer}>
       <div style={styles.calculatorWrapper}>
         <div style={styles.header}>
           <h1 style={styles.title}>Savings Calculator</h1>
-          <p style={styles.subtitle}>
-            The calculator will automatically calculate the remaining field for you, highlighted in blue.
-            <br />
-            Alternatively, turn auto-calculate off to enter values manually, then click 'Calculate'.
-          </p>
+          {view === 'selection' ? (
+            <p style={styles.subtitle}>How would you like to visualise your goal?</p>
+          ) : (
+            <p style={styles.subtitle}>Adjust the values to see the result update instantly.</p>
+          )}
         </div>
-        <div style={styles.controlsContainer}>
-            <button onClick={calculateSwitch} style={styles.button}>
-                {autoCalculate ? "Turn Off Autocalculate" : "Turn On Autocalculate"}
-            </button>
-            <div style={styles.inputsContainer}>
-            <InputControl
-                label="Savings Goal"
-                unit="£"
-                value={goal}
-                onChange={handleGoalChange}
-                min={100}
-                max={75000}
-                step={100}
-                isCalculated={calculatedField === 'goal'}
-            />
-            <InputControl
-                label="Monthly Contribution"
-                unit="£"
-                value={contribution}
-                onChange={handleContributionChange}
-                min={10}
-                max={2000}
-                step={10}
-                isCalculated={calculatedField === 'contribution'}
-            />
-            <InputControl
-                label="Duration"
-                unit="m"
-                unitPosition="after"
-                value={duration}
-                onChange={handleDurationChange}
-                min={1}
-                max={240}
-                step={1}
-                isCalculated={calculatedField === 'duration'}
-            />
-            </div>
-        </div>
-        <div style={styles.buttonsContainer}>
-            <button onClick={handleReset} style={styles.button}>
-                Reset Calculator
-            </button>
-            { !autoCalculate && (
-                <div style={styles.manualButtonsGroup}>
-                    <button onClick={handleCalculateGoal} style={styles.secondaryButton}>Calculate Total</button>
-                    <button onClick={handleCalculateContribution} style={styles.secondaryButton}>Calculate Monthly</button>
-                    <button onClick={handleCalculateDuration} style={styles.secondaryButton}>Calculate Duration</button>
-                </div>
-            )}
-        </div>
+
+        {view === 'selection' ? (
+          <div style={styles.selectionContainer}>
+            <button onClick={() => setView('goal')} style={styles.selectionButton}>How much will I save with my monthly payments?</button>
+            <button onClick={() => setView('duration')} style={styles.selectionButton}>How many months of saving until I reach my goal?</button>
+            <button onClick={() => setView('contribution')} style={styles.selectionButton}>I know my savings goal</button>
+          </div>
+        ) : (
+          renderCalculator()
+        )}
       </div>
     </div>
   );
